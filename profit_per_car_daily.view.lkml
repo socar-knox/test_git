@@ -1,5 +1,52 @@
 view: profit_per_car_daily {
-  sql_table_name: socar_biz.profit_per_car_daily ;;
+  sql_table_name: temp_knox.profit_per_car_daily_looker ;;
+
+#   parameter: values {
+#     type: string
+#     allowed_value: { value: "순대여매출" }
+#     allowed_value: { value: "대당 표준손익" }
+#   }
+  parameter: measure_type {
+    suggestions: ["이용건수","이용시간","순대여매출","표준손익"]
+    default_value: "이용건수"
+  }
+
+  measure: dynamic_measure_1 {
+    type: number
+    label_from_parameter: measure_type
+    sql: case when  {% condition measure_type %} '이용건수' {% endcondition %}
+              then ${nuse}
+          when  {% condition measure_type %} '이용시간' {% endcondition %}
+              then ${utime}
+          when  {% condition measure_type %} '순대여매출' {% endcondition %}
+              then ${rev_pure}
+          when {% condition measure_type %} '표준손익' {% endcondition %}
+              then ${standard_profit}
+          else null end;;
+    value_format: "#,##0"
+  }
+
+  measure: dynamic_measure_2 {
+    type: number
+    label_from_parameter: measure_type
+    sql: case when  {% condition measure_type %} '이용건수' {% endcondition %}
+              then ${nuse}/${car_cnt}
+          when  {% condition measure_type %} '이용시간' {% endcondition %}
+              then ${utime}/${car_cnt}
+          when  {% condition measure_type %} '순대여매출' {% endcondition %}
+              then ${rev_pure}/${car_cnt}
+          when {% condition measure_type %} '표준손익' {% endcondition %}
+              then ${standard_profit}/${car_cnt}
+          else null end;;
+    value_format: "#,##0.0"
+  }
+
+  dimension_group: current {
+    type: time
+    timeframes: [date, week, month, quarter, year, week_of_year]
+    convert_tz: yes
+    sql: current_timestamp() ;;
+  }
 
   dimension: team {
     type: string
@@ -29,7 +76,8 @@ view: profit_per_car_daily {
       week,
       month,
       quarter,
-      year
+      year,
+      week_of_year
     ]
     convert_tz: no
     datatype: date
@@ -60,6 +108,12 @@ view: profit_per_car_daily {
   dimension: zone_name {
     type: string
     sql: ${TABLE}.zone_name ;;
+  }
+
+  dimension: zone_location {
+    type: location
+    sql_latitude: ${TABLE}.zone_lat ;;
+    sql_longitude:  ${TABLE}.zone_lng ;;
   }
 
   dimension: zone_type {
@@ -506,6 +560,18 @@ view: profit_per_car_daily {
   measure: standard_profit {
     type: sum
     sql: ${TABLE}.standard_profit ;;
+    value_format: "#,##0"
+  }
+
+  measure: car_cnt {
+    type:  count_distinct
+    sql: ${TABLE}.car_id ;;
+    value_format: "#,##0"
+  }
+
+  measure: zone_cnt {
+    type:  count_distinct
+    sql: ${TABLE}.zone_id ;;
     value_format: "#,##0"
   }
 }
