@@ -561,6 +561,7 @@ view: profit_per_car_daily {
     type: sum
     sql: ${TABLE}.standard_profit ;;
     value_format: "#,##0"
+    drill_fields: [team,zone_name,team,power_source]
   }
 
   measure: car_cnt {
